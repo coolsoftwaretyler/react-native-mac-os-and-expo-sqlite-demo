@@ -1,0 +1,194 @@
+diff --git a/node_modules/expo-sqlite/ios/CRSQLiteLoader.h b/node_modules/expo-sqlite/ios/CRSQLiteLoader.h
+deleted file mode 100644
+index 552a838..0000000
+--- a/node_modules/expo-sqlite/ios/CRSQLiteLoader.h
++++ /dev/null
+@@ -1,7 +0,0 @@
+-// Copyright 2015-present 650 Industries. All rights reserved.
+-
+-#pragma once
+-
+-struct sqlite3;
+-
+-int crsqlite_init_from_swift(struct sqlite3 *db);
+diff --git a/node_modules/expo-sqlite/ios/CRSQLiteLoader.m b/node_modules/expo-sqlite/ios/CRSQLiteLoader.m
+deleted file mode 100644
+index 7e60d35..0000000
+--- a/node_modules/expo-sqlite/ios/CRSQLiteLoader.m
++++ /dev/null
+@@ -1,18 +0,0 @@
+-// Copyright 2015-present 650 Industries. All rights reserved.
+-
+-#import <ExpoSQLite/CRSQLiteLoader.h>
+-#import <sqlite3/sqlite3.h>
+-
+-int crsqlite_init_from_swift(sqlite3 *db) {
+-  sqlite3_enable_load_extension(db, 1);
+-  char *errorMessage;
+-  NSBundle *bundle = [NSBundle bundleWithIdentifier:@"io.vlcn.crsqlite"];
+-  NSString *libPath = [bundle pathForResource:@"crsqlite" ofType:@""];
+-  int result = sqlite3_load_extension(db, [libPath UTF8String], "sqlite3_crsqlite_init", &errorMessage);
+-  if (result != SQLITE_OK) {
+-    NSLog(@"Failed to load sqlite3 extension: %@", [NSString stringWithCString:errorMessage]);
+-    sqlite3_free(errorMessage);
+-    errorMessage = nil;
+-  }
+-  return result;
+-}
+diff --git a/node_modules/expo-sqlite/ios/ExpoSQLite.podspec b/node_modules/expo-sqlite/ios/ExpoSQLite.podspec
+index 870d427..508d6fe 100644
+--- a/node_modules/expo-sqlite/ios/ExpoSQLite.podspec
++++ b/node_modules/expo-sqlite/ios/ExpoSQLite.podspec
+@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
+   s.license        = package['license']
+   s.author         = package['author']
+   s.homepage       = package['homepage']
+-  s.platform       = :ios, '13.4'
++  s.platforms      = { :ios => "13.4", :osx => "11.0" } # Change this line, and use "11.0" since that's what we have in `macos/Podfile`
+   s.source         = { git: 'https://github.com/expo/expo.git' }
+   s.static_framework = true
+   s.dependency 'ExpoModulesCore'
+@@ -31,5 +31,4 @@ Pod::Spec.new do |s|
+   }
+ 
+   s.source_files = "**/*.{h,m,swift}"
+-  s.vendored_frameworks = 'crsqlite.xcframework'
+ end
+diff --git a/node_modules/expo-sqlite/ios/SQLiteModuleNext.swift b/node_modules/expo-sqlite/ios/SQLiteModuleNext.swift
+index 66bbb6c..381bb36 100644
+--- a/node_modules/expo-sqlite/ios/SQLiteModuleNext.swift
++++ b/node_modules/expo-sqlite/ios/SQLiteModuleNext.swift
+@@ -230,9 +230,6 @@ public final class SQLiteModuleNext: Module {
+ 
+   private func initDb(database: NativeDatabase) throws {
+     try maybeThrowForClosedDatabase(database)
+-    if database.openOptions.enableCRSQLite {
+-      crsqlite_init_from_swift(database.pointer)
+-    }
+     if database.openOptions.enableChangeListener {
+       addUpdateHook(database)
+     }
+@@ -371,9 +368,6 @@ public final class SQLiteModuleNext: Module {
+       sqlite3_finalize(removedStatement.pointer)
+     }
+ 
+-    if db.openOptions.enableCRSQLite {
+-      sqlite3_exec(db.pointer, "SELECT crsql_finalize()", nil, nil, nil)
+-    }
+     let ret = sqlite3_close(db.pointer)
+     db.isClosed = true
+ 
+diff --git a/node_modules/expo-sqlite/ios/crsqlite.xcframework/Info.plist b/node_modules/expo-sqlite/ios/crsqlite.xcframework/Info.plist
+deleted file mode 100644
+index f4e8031..0000000
+--- a/node_modules/expo-sqlite/ios/crsqlite.xcframework/Info.plist
++++ /dev/null
+@@ -1,44 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+-<plist version="1.0">
+-<dict>
+-	<key>AvailableLibraries</key>
+-	<array>
+-		<dict>
+-			<key>LibraryIdentifier</key>
+-			<string>ios-arm64_x86_64-simulator</string>
+-			<key>LibraryPath</key>
+-			<string>crsqlite.framework</string>
+-			<key>SupportedArchitectures</key>
+-			<array>
+-				<string>arm64</string>
+-				<string>x86_64</string>
+-			</array>
+-			<key>SupportedPlatform</key>
+-			<string>ios</string>
+-			<key>SupportedPlatformVariant</key>
+-			<string>simulator</string>
+-		</dict>
+-		<dict>
+-			<key>LibraryIdentifier</key>
+-			<string>ios-arm64</string>
+-			<key>LibraryPath</key>
+-			<string>crsqlite.framework</string>
+-			<key>SupportedArchitectures</key>
+-			<array>
+-				<string>arm64</string>
+-			</array>
+-			<key>SupportedPlatform</key>
+-			<string>ios</string>
+-		</dict>
+-	</array>
+-	<key>CFBundlePackageType</key>
+-	<string>XFWK</string>
+-	<key>XCFrameworkFormatVersion</key>
+-	<string>1.0</string>
+-  <key>CFBundleVersion</key>
+-  <string>1</string>
+-  <key>CFBundleShortVersionString</key>
+-  <string>1.0.0</string>
+-</dict>
+-</plist>
+diff --git a/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64/crsqlite.framework/Info.plist b/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64/crsqlite.framework/Info.plist
+deleted file mode 100644
+index 9d5560e..0000000
+--- a/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64/crsqlite.framework/Info.plist
++++ /dev/null
+@@ -1,24 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+-<plist version="1.0">
+-<dict>
+-  <key>CFBundleDevelopmentRegion</key>
+-  <string>en</string>
+-  <key>CFBundleExecutable</key>
+-  <string>crsqlite</string>
+-  <key>CFBundleIdentifier</key>
+-  <string>io.vlcn.crsqlite</string>
+-  <key>CFBundleInfoDictionaryVersion</key>
+-  <string>6.0</string>
+-  <key>CFBundleVersion</key>
+-  <string>1</string>
+-  <key>CFBundleShortVersionString</key>
+-  <string>1.0.0</string>
+-  <key>CFBundlePackageType</key>
+-  <string>FMWK</string>
+-  <key>CFBundleSignature</key>
+-  <string>????</string>
+-  <key>MinimumOSVersion</key>
+-  <string>8.0</string>
+-</dict>
+-</plist>
+diff --git a/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64/crsqlite.framework/crsqlite b/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64/crsqlite.framework/crsqlite
+deleted file mode 100755
+index bd379bc..0000000
+Binary files a/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64/crsqlite.framework/crsqlite and /dev/null differ
+diff --git a/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64_x86_64-simulator/crsqlite.framework/Info.plist b/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64_x86_64-simulator/crsqlite.framework/Info.plist
+deleted file mode 100644
+index e3fbebf..0000000
+--- a/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64_x86_64-simulator/crsqlite.framework/Info.plist
++++ /dev/null
+@@ -1,20 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+-<plist version="1.0">
+-<dict>
+-  <key>CFBundleDevelopmentRegion</key>
+-  <string>en</string>
+-  <key>CFBundleExecutable</key>
+-  <string>crsqlite</string>
+-  <key>CFBundleIdentifier</key>
+-  <string>io.vlcn.crsqlite</string>
+-  <key>CFBundleInfoDictionaryVersion</key>
+-  <string>6.0</string>
+-  <key>CFBundlePackageType</key>
+-  <string>FMWK</string>
+-  <key>CFBundleSignature</key>
+-  <string>????</string>
+-  <key>MinimumOSVersion</key>
+-  <string>8.0</string>
+-</dict>
+-</plist>
+diff --git a/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64_x86_64-simulator/crsqlite.framework/crsqlite b/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64_x86_64-simulator/crsqlite.framework/crsqlite
+deleted file mode 100755
+index 1f76709..0000000
+Binary files a/node_modules/expo-sqlite/ios/crsqlite.xcframework/ios-arm64_x86_64-simulator/crsqlite.framework/crsqlite and /dev/null differ
